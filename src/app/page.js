@@ -1,47 +1,46 @@
-import SearchDrama from "./components/SearchDrama";
+// src/app/page.js
+
 import DramaCard from "./components/DramaCard";
+import SearchDrama from "./components/SearchDrama";
+
+const API_BASE = "https://api.sansekai.my.id/api";
 
 async function getForYou() {
-  const res = await fetch("http://localhost:3000/api/foryou", {
-    cache: "no-store",
-  });
+  const res = await fetch(
+    `${API_BASE}/dramabox/foryou`,
+    { cache: "no-store" }
+  );
+
+  if (!res.ok) return [];
   return res.json();
 }
 
-export default async function Home() {
-  const data = await getForYou();
+export default async function HomePage() {
+  let dramas = [];
+
+  try {
+    dramas = await getForYou();
+  } catch (err) {
+    console.error("FOR YOU ERROR:", err);
+  }
+
+  // ✅ pastikan array & data valid
+  const safeDramas = Array.isArray(dramas)
+    ? dramas.filter(item => item && item.bookId)
+    : [];
 
   return (
-    <div className="space-y-14">
-
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       {/* SEARCH */}
       <SearchDrama />
 
-      {/* FOR YOU */}
-      <div>
-        <h2 className="text-2xl font-bold mb-6">
-          Untuk Kamu
-        </h2>
+      <h2 className="text-xl font-semibold">Untuk Kamu</h2>
 
-        <div className="
-  grid
-  grid-cols-2
-  sm:grid-cols-3
-  md:grid-cols-4
-  lg:grid-cols-5
-  xl:grid-cols-6
-  gap-4
-">
-
-          {data.map((item, index) => (
-            <DramaCard
-              key={`${item.bookId}-${index}`}
-              item={item}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        {safeDramas.map(item => (
+          <DramaCard key={item.bookId} data={item} />
+        ))}
       </div>
-
     </div>
   );
 }

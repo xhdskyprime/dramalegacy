@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import DramaCard from "./DramaCard";
 
 const API_BASE = "https://api.sansekai.my.id/api";
@@ -10,67 +10,51 @@ export default function SearchDrama() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!query) {
+  async function handleSearch(e) {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (value.length < 2) {
       setResults([]);
       return;
     }
 
-    const delay = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(
-          `${API_BASE}/dramabox/search?query=${encodeURIComponent(query)}`
-        );
-        const json = await res.json();
-        setResults(Array.isArray(json) ? json : []);
-      } catch (e) {
-        console.error(e);
-      }
-      setLoading(false);
-    }, 500);
+    setLoading(true);
 
-    return () => clearTimeout(delay);
-  }, [query]);
+    try {
+      const res = await fetch(
+        `${API_BASE}/dramabox/search?query=${encodeURIComponent(value)}`
+      );
+      const data = await res.json();
+      setResults(data || []);
+    } catch {
+      setResults([]);
+    }
+
+    setLoading(false);
+  }
 
   return (
-    <div className="mb-12 space-y-4">
-
-      {/* SEARCH INPUT */}
+    <div className="space-y-4">
       <input
         type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
         placeholder="Cari judul drama..."
-        className="w-full px-4 py-3 rounded-lg bg-zinc-900 text-white outline-none focus:ring focus:ring-pink-500"
+        value={query}
+        onChange={handleSearch}
+        className="w-full px-4 py-2 rounded bg-zinc-900 border border-zinc-700"
       />
 
       {loading && (
-        <div className="text-sm text-zinc-400">
-          Mencari drama...
-        </div>
+        <div className="text-sm text-gray-400">Mencari...</div>
       )}
 
       {results.length > 0 && (
-        <div className="
-  grid
-  grid-cols-2
-  sm:grid-cols-3
-  md:grid-cols-4
-  lg:grid-cols-5
-  xl:grid-cols-6
-  gap-4
-">
-
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {results.map((item) => (
-            <DramaCard
-              key={item.bookId}
-              item={item}
-            />
+            <DramaCard key={item.bookId} data={item} />
           ))}
         </div>
       )}
-
     </div>
   );
 }

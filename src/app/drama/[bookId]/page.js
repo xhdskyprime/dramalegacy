@@ -1,85 +1,83 @@
 const API_BASE = "https://api.sansekai.my.id/api";
 
-/* =======================
-   SAFE JSON
-======================= */
-async function safeJson(res) {
-  const text = await res.text();
-  if (!text) return null;
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
-
-/* =======================
-   FETCH DETAIL
-======================= */
 async function getDetail(bookId) {
   const res = await fetch(
     `${API_BASE}/dramabox/detail?bookId=${bookId}`,
     { cache: "no-store" }
   );
-  if (!res.ok) return null;
-  return safeJson(res);
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch detail");
+  }
+
+  return res.json();
 }
 
-/* =======================
-   FETCH EPISODES
-======================= */
 async function getEpisodes(bookId) {
   const res = await fetch(
     `${API_BASE}/dramabox/allepisode?bookId=${bookId}`,
     { cache: "no-store" }
   );
+
   if (!res.ok) return [];
-  return (await safeJson(res)) || [];
+
+  return res.json();
 }
 
 import Player from "./player";
 
 export default async function DramaDetail({ params }) {
+  // ✅ WAJIB await (Next.js 16)
   const { bookId } = await params;
 
-  const detail = await getDetail(bookId);
-  const episodesRaw = await getEpisodes(bookId);
-
-  if (!detail) {
+  if (!bookId) {
     return (
       <div className="p-10 text-center text-gray-400">
-        Data drama tidak ditemukan
+        Book ID tidak valid
       </div>
     );
   }
 
-  /* =======================
-     MAPPING EPISODE (FIX)
-  ======================= */
-  const episodes = episodesRaw.map((ep, index) => {
-    const defaultCdn =
-      ep.cdnList?.find(cdn => cdn.isDefault === 1) ||
-      ep.cdnList?.[0];
+  let detail;
+  let episodesRaw;
 
-    const defaultVideo =
-      defaultCdn?.videoPathList?.find(v => v.isDefault === 1) ||
-      defaultCdn?.videoPathList?.[0];
+  try {
+    detail = await getDetail(bookId);
+    episodesRaw = await getEpisodes(bookId);
+  } catch (err) {
+    console.error(err);
+    return (
+      <div className="p-10 text-center text-red-400">
+        Gagal memuat drama
+      </div>
+    );
+  }
 
-    return {
-      index: index + 1,
-      title: ep.chapterName,
-      poster: ep.chapterImg,
-      playUrl: defaultVideo?.videoPath || null
-    };
-  }).filter(ep => ep.playUrl);
+  const episodes = episodesRaw
+    .map((ep, index) => {
+      const cdn =
+        ep.cdnList?.find(c => c.isDefault === 1) ||
+        ep.cdnList?.[0];
+
+      const video =
+        cdn?.videoPathList?.find(v => v.isDefault === 1) ||
+        cdn?.videoPathList?.[0];
+
+      return {
+        index: index + 1,
+        title: ep.chapterName,
+        poster: ep.chapterImg,
+        playUrl: video?.videoPath || null
+      };
+    })
+    .filter(ep => ep.playUrl);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-8">
-
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row gap-6">
         <img
-          src={detail.coverWap}
+          src={detail.coverWap || detail.cover}
           alt={detail.bookName}
           className="w-full sm:w-[220px] rounded-lg object-cover"
         />
@@ -89,7 +87,7 @@ export default async function DramaDetail({ params }) {
             {detail.bookName}
           </h1>
 
-          <p className="text-gray-300 text-sm sm:text-base leading-relaxed">
+          <p className="text-gray-300 text-sm sm:text-base">
             {detail.introduction}
           </p>
 
@@ -101,7 +99,6 @@ export default async function DramaDetail({ params }) {
 
       {/* PLAYER */}
       <Player episodes={episodes} />
-
     </div>
   );
 }

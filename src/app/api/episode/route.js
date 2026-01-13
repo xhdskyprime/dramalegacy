@@ -4,7 +4,7 @@ export async function GET(request) {
     const bookId = searchParams.get("bookId");
 
     const res = await fetch(
-      `https://api.sansekai.my.id/api/dramabox/allpisode?bookId=${bookId}`,
+      `https://api.sansekai.my.id/api/dramabox/allepisode?bookId=${bookId}`,
       {
         headers: {
           "User-Agent": "Mozilla/5.0",
