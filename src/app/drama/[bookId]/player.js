@@ -1,99 +1,111 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Player({ episodes }) {
   const videoRef = useRef(null);
 
-  if (!episodes || episodes.length === 0) {
+  const [current, setCurrent] = useState(0);
+  const [started, setStarted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const episode = episodes[current];
+
+  /* =========================
+     FULLSCREEN TRACKING
+  ========================= */
+  useEffect(() => {
+    function onFullscreenChange() {
+      setIsFullscreen(!!document.fullscreenElement);
+    }
+
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  /* =========================
+     CHANGE VIDEO SOURCE
+  ========================= */
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !episode) return;
+
+    video.src = episode.playUrl;
+    video.load();
+
+    if (started) {
+      video.play().catch(() => {});
+    }
+  }, [current]);
+
+  /* =========================
+     NEXT EPISODE
+  ========================= */
+  function playNext() {
+    if (current >= episodes.length - 1) return;
+    setCurrent(c => c + 1);
+  }
+
+  /* =========================
+     VIDEO EVENTS
+  ========================= */
+  function handlePlay() {
+    setStarted(true);
+  }
+
+  function handleEnded() {
+    playNext();
+  }
+
+  /* =========================
+     KEEP FULLSCREEN
+  ========================= */
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isFullscreen && document.fullscreenElement === null) {
+      video.requestFullscreen().catch(() => {});
+    }
+  }, [current]);
+
+  if (!episode) {
     return (
-      <div className="aspect-video bg-black rounded flex items-center justify-center text-gray-400">
-        Video belum tersedia
+      <div className="text-center text-gray-400">
+        Video tidak tersedia
       </div>
     );
   }
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const current = episodes[currentIndex];
-
-  const playEpisode = (index) => {
-    setCurrentIndex(index);
-    setTimeout(() => {
-      videoRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-  };
-
-  const nextEpisode = () => {
-    if (currentIndex < episodes.length - 1) {
-      playEpisode(currentIndex + 1);
-    }
-  };
-
-  const prevEpisode = () => {
-    if (currentIndex > 0) {
-      playEpisode(currentIndex - 1);
-    }
-  };
-
   return (
-    <div className="space-y-6">
-
+    <div className="space-y-4">
       {/* VIDEO */}
-      <div className="aspect-video bg-black rounded overflow-hidden">
-        <video
-          ref={videoRef}
-          key={current.playUrl}
-          src={current.playUrl}
-          poster={current.poster}
-          controls
-          playsInline
-          className="w-full h-full object-contain bg-black"
-          onEnded={nextEpisode}
-        />
-      </div>
-
-      {/* NEXT / PREV */}
-      <div className="flex gap-3">
-        <button
-          onClick={prevEpisode}
-          disabled={currentIndex === 0}
-          className="flex-1 py-2 rounded bg-gray-700 disabled:opacity-40"
-        >
-          ⬅ Prev
-        </button>
-
-        <button
-          onClick={nextEpisode}
-          disabled={currentIndex === episodes.length - 1}
-          className="flex-1 py-2 rounded bg-red-600 disabled:opacity-40"
-        >
-          Next ➡
-        </button>
-      </div>
+      <video
+        ref={videoRef}
+        controls
+        playsInline
+        onPlay={handlePlay}
+        onEnded={handleEnded}
+        className="w-full max-h-[70vh] bg-black rounded-lg"
+      />
 
       {/* EPISODE LIST */}
-      <div>
-        <h2 className="text-lg sm:text-xl font-semibold mb-3">
-          Semua Episode
-        </h2>
-
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
-          {episodes.map((ep, i) => (
-            <button
-              key={ep.index}
-              onClick={() => playEpisode(i)}
-              className={`py-2 rounded text-xs sm:text-sm
-                ${i === currentIndex
-                  ? "bg-red-700"
-                  : "bg-red-600 hover:bg-red-700"
-                }`}
-            >
-              Ep {ep.index}
-            </button>
-          ))}
-        </div>
+      <div className="flex gap-2 flex-wrap">
+        {episodes.map((ep, idx) => (
+          <button
+            key={ep.index}
+            onClick={() => setCurrent(idx)}
+            className={`px-3 py-1 rounded text-sm ${
+              idx === current
+                ? "bg-pink-600 text-white"
+                : "bg-zinc-800 text-gray-300"
+            }`}
+          >
+            Ep {ep.index}
+          </button>
+        ))}
       </div>
-
     </div>
   );
 }
