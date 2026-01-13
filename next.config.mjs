@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "hwztchapter.dramaboxdb.com",
+      },
+      {
+        protocol: "https",
+        hostname: "hwztchapter.dramaboxdb.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
