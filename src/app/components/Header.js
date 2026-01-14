@@ -15,7 +15,7 @@ export default function Header() {
         flex items-center justify-between
       ">
         {/* LOGO */}
-        <Link href="/" className="text-white-500 font-bold text-lg">
+        <Link href="/" className="text--500 font-bold text-lg">
           Dramalegacy
         </Link>
 

@@ -1,46 +1,47 @@
-// src/app/page.js
-
-import DramaCard from "./components/DramaCard";
+import DramaRow from "./components/DramaRow";
 import SearchDrama from "./components/SearchDrama";
 
-const API_BASE = "https://api.sansekai.my.id/api";
+const BASE = "https://api.sansekai.my.id/api";
 
-async function getForYou() {
-  const res = await fetch(
-    `${API_BASE}/dramabox/foryou`,
-    { cache: "no-store" }
-  );
-
-  if (!res.ok) return [];
+async function fetchApi(path) {
+  const res = await fetch(`${BASE}${path}`, { cache: "no-store" });
   return res.json();
 }
 
+function normalize(list = []) {
+  return list.map(item => ({
+    bookId: item.bookId,
+    bookName: item.bookName,
+    cover: item.coverWap || item.bookCover,
+  }));
+}
+
 export default async function HomePage() {
-  let dramas = [];
+  const [
+    foryou,
+    trending,
+    latest,
+    vipRaw,
+  ] = await Promise.all([
+    fetchApi("/dramabox/foryou"),
+    fetchApi("/dramabox/trending"),
+    fetchApi("/dramabox/latest"),
+    fetchApi("/dramabox/vip"),
+  ]);
 
-  try {
-    dramas = await getForYou();
-  } catch (err) {
-    console.error("FOR YOU ERROR:", err);
-  }
-
-  // ✅ pastikan array & data valid
-  const safeDramas = Array.isArray(dramas)
-    ? dramas.filter(item => item && item.bookId)
-    : [];
+  const vipList =
+    vipRaw?.columnVoList?.[0]?.bookList ?? [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      {/* SEARCH */}
+    <div className="space-y-10">
+      {/* SEARCH BAR BESAR */}
       <SearchDrama />
 
-      <h2 className="text-xl font-semibold">Untuk Kamu</h2>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {safeDramas.map(item => (
-          <DramaCard key={item.bookId} data={item} />
-        ))}
-      </div>
+      {/* ROWS */}
+      <DramaRow title="Untuk Kamu" data={normalize(foryou)} />
+      <DramaRow title="🔥 Sedang Trending" data={normalize(trending)} />
+      <DramaRow title="⭐ VIP Pilihan" data={normalize(vipList)} />
+      <DramaRow title="🆕 Drama Terbaru" data={normalize(latest)} />
     </div>
   );
 }

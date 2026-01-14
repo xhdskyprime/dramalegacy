@@ -10,7 +10,7 @@ export default function SearchDrama() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  async function handleSearch(e) {
+  async function handleChange(e) {
     const value = e.target.value;
     setQuery(value);
 
@@ -23,11 +23,22 @@ export default function SearchDrama() {
 
     try {
       const res = await fetch(
-        `${API_BASE}/dramabox/search?query=${encodeURIComponent(value)}`
+        `${API_BASE}/dramabox/populersearch?keyword=${encodeURIComponent(value)}`
       );
       const data = await res.json();
-      setResults(data || []);
-    } catch {
+
+      // 🔑 NORMALISASI DATA SEARCH
+      const normalized = Array.isArray(data)
+        ? data.map(item => ({
+            bookId: item.bookId,
+            bookName: item.bookName,
+            cover: item.bookCover || item.coverWap,
+          }))
+        : [];
+
+      setResults(normalized);
+    } catch (err) {
+      console.error("SEARCH ERROR:", err);
       setResults([]);
     }
 
@@ -35,26 +46,36 @@ export default function SearchDrama() {
   }
 
   return (
-    <div className="space-y-4">
+    <section className="space-y-4">
+      {/* SEARCH INPUT */}
       <input
         type="text"
         placeholder="Cari judul drama..."
         value={query}
-        onChange={handleSearch}
-        className="w-full px-4 py-2 rounded bg-zinc-900 border border-zinc-700"
+        onChange={handleChange}
+        className="
+          w-full px-5 py-4
+          rounded-lg
+          bg-zinc-900
+          border border-zinc-700
+          text-base
+          outline-none
+          focus:ring-2 focus:ring-red-500
+        "
       />
 
       {loading && (
-        <div className="text-sm text-gray-400">Mencari...</div>
+        <p className="text-sm text-gray-400">Mencari...</p>
       )}
 
+      {/* SEARCH RESULT */}
       {results.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {results.map((item) => (
+          {results.map(item => (
             <DramaCard key={item.bookId} data={item} />
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
